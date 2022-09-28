@@ -23,19 +23,19 @@ When you want to open a cross-repo pull request, you will do the following:
 2. Create file `config.json` at the root like so:
 ```ts
 {
-  "pat": string,            // Github personal access token
-  "title": string,          // Title of the ticket
-  "fixes"?: {
-	  "repository": string, // Repository where the ticket lives
-	  "issue": number       // Ticket number
-  },
+   "pat": string,           // Github personal access token
+   "title": string,         // Title of the ticket
+   "fixes"?: {
+      "repository": string, // Repository where the ticket lives
+      "issue": number       // Ticket number
+   },
   "repositories": [
       {
-		"owner": string,   // Owner of the repository
-		"name": string,    // Name of the repository
-		"head": string,    // Branch that your work is on
-		"base": string,    // Branch that you are merging into
-		disabled?: boolean // Specifies whether or not this repo should be ignored [default = false]
+         "owner": string,     // Owner of the repository
+         "name": string,      // Name of the repository
+         "head": string,      // Branch that your work is on
+         "base": string,      // Branch that you are merging into
+         "disabled"?: boolean // Specifies whether or not this repo should be ignored [default = false]
       }
   ]
 }
