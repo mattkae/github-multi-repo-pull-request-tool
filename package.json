@@ -1,0 +1,14 @@
+{
+  "name": "githubmultiprtool",
+  "version": "1.0.0",
+  "description": "A utility to open up pull requests that reference one another across repositories.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node --no-warnings index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "octokit": "^2.0.7"
+  }
+}
