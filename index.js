@@ -47,10 +47,6 @@ fixes ${configuration.fixes.repository}/issues/${configuration.fixes.issue}`);
   return prBody;
 }
 
-async function deleteAllCreated(createdPullRequests) {
-
-}
-
 async function createPullRequests({ octokit, configuration }) { 
   const body = getBody(configuration);
   const createdPullRequests = [];
