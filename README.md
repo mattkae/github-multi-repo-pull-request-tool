@@ -29,7 +29,8 @@ When you want to open a cross-repo pull request, you will do the following:
       "repository": string, // Repository where the ticket lives
       "issue": number       // Ticket number
    },
-  "repositories": [
+   "reviewers"?: Array<string>, // Array of user names to review your pull request
+   "repositories": [
       {
          "owner": string,     // Owner of the repository
          "name": string,      // Name of the repository
