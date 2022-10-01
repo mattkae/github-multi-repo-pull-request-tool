@@ -8,6 +8,8 @@ async function login() {
     const fileReadResult = fs.readFileSync('./config.json');
     configuration = JSON.parse(fileReadResult.toString());
     console.log('Configuration parsed.', configuration);
+
+		configuration.repositories = configuration.repositories.filter(repo => !repo.disabled);
   }
   catch (e) {
     console.error('Unable to partse the configuration', e);
@@ -55,13 +57,12 @@ async function createPullRequests({ octokit, configuration }) {
   await Promise.all(configuration.repositories.map(async function(repo) {
 	try {
 	  const createResult = await octokit.rest.pulls.create({
-		owner: repo.owner,
-		repo: repo.name,
-		title: getTitle(configuration),
-		draft: true,
-		head: repo.head,
-		base: repo.base,
-		body: body
+			owner: repo.owner,
+			repo: repo.name,
+			title: getTitle(configuration),
+			head: repo.head,
+			base: repo.base,
+			body: body
 	  });
 	  console.info('Pull request created: ' + createResult.data.html_url);
 
@@ -82,22 +83,23 @@ async function createPullRequests({ octokit, configuration }) {
 async function updatePullRequests({ octokit, body, configuration, createdPullRequests }) {
   await Promise.all(configuration.repositories.map(async function(repo) {
 	try {
+		let myBody = body;
 	  const myPr = createdPullRequests.find(pr => pr.name === repo.name);
 	  const linkedPrs = createdPullRequests.filter(pr => pr.name !== repo.name).map(pr => '- ' + pr.url);
 
 	  if (linkedPrs.length === 0) {
-		body = body.replace('$MERGE_WITH', '');
+			myBody = myBody.replace('$MERGE_WITH', '');
 	  }
 	  else {
-		body = body.replace('$MERGE_WITH', `## Merge with
+			myBody = myBody.replace('$MERGE_WITH', `## Merge with
 ${linkedPrs.join('\n')}`);
 	  }
 
 	  const updateResult = await octokit.rest.pulls.update({
-		owner: repo.owner,
-		repo: repo.name,
-		pull_number: myPr.number,
-		body: body
+			owner: repo.owner,
+			repo: repo.name,
+			pull_number: myPr.number,
+			body: myBody
 	  });
 
 	  console.info('Pull request updated: ' + updateResult.data.html_url);
