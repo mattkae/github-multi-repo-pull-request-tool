@@ -30,6 +30,7 @@ npm install
 {
     "pat": "YOUR_GITHUB_PAT",
     "reviewers": [ "username1", "username2" ],
+    "browser": true,                   // Optional. If set, the PRs will open in the browser in the end
     "repositories": [
        {
           "owner": "MyName_Or_Company",

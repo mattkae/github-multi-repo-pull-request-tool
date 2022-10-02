@@ -2,6 +2,7 @@ const { Octokit } = require('octokit');
 const fs = require('fs');
 const readline = require('readline');
 const { stdin, stdout, exit } = require('process');
+const child_process = require('child_process');
 
 async function readConfiguration() {
   try {
@@ -17,9 +18,11 @@ async function readConfiguration() {
 
 function spawnEditor(onComplete) {
   fs.copyFileSync('./default_content.md', '/tmp/content.md');
-  const vim = require('child_process').spawn(process.env.EDITOR || 'vim', ['/tmp/content.md'], { stdio: 'inherit' });
-  vim.on('exit', function(code) {
-    console.log('Exited with code: ' + code);
+  const editor = child_process.spawn(process.env.EDITOR || 'vim', ['/tmp/content.md'], { stdio: 'inherit' });
+  editor.on('exit', function(code) {
+    if (code !== 0) {
+      throw new Error('Editor exited with code: ' + code);
+    }
     onComplete();
   });
 }
@@ -154,7 +157,7 @@ async function login({ configuration }) {
 
 function getTitle(configuration) {
   if (configuration.ticket) {
-    const number = configuration.ticket.substring(configuration.ticket.lastIndexOf('/'));
+    const number = configuration.ticket.substring(configuration.ticket.lastIndexOf('/') + 1);
     return `(#${number}) ${configuration.title}`;
   }
   else {
@@ -261,6 +264,12 @@ async function requestReviewers({ createdPullRequests, configuration, octokit })
   catch (e) {
     console.error('Unable to add reviewers', e.message);
     throw e;
+  }
+
+  if (configuration.browser) {
+    for (const pr of createdPullRequests) {
+      child_process.spawn("xdg-open", [ pr.url ]);
+    }
   }
 }
 
