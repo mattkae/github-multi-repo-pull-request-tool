@@ -1,6 +1,6 @@
 {
-  "name": "github-multi-repo-pull-request-tool",
-  "version": "1.0.0",
+  "name": "@mattkae/github-multi-repo-pull-request-tool",
+  "version": "1.0.1",
   "description": "A utility to open up pull requests that reference one another across repositories.",
   "main": "index.js",
   "repository": {
@@ -10,7 +10,7 @@
   "scripts": {
     "start": "node --no-warnings index.js"
   },
-  "author": "",
+  "author": "mattkae",
   "license": "ISC",
   "dependencies": {
     "octokit": "^2.0.7"
