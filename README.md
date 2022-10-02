@@ -48,4 +48,4 @@ Run:
 npm run start
 ```
 
-Then follow the prompts o create your pull requests. That's it!
+Then follow the prompts to create your pull requests. That's it!
