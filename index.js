@@ -19,7 +19,7 @@ async function readConfiguration() {
 function spawnEditor(onComplete) {
   fs.copyFileSync('./default_content.md', '/tmp/content.md');
   const editor = child_process.spawn(process.env.EDITOR || 'vim', ['/tmp/content.md'], { stdio: 'inherit' });
-  editor.on('exit', function(code) {
+  editor.on('exit', function (code) {
     if (code !== 0) {
       throw new Error('Editor exited with code: ' + code);
     }
@@ -180,6 +180,24 @@ fixes ${configuration.ticket}`);
   return prBody;
 }
 
+async function closeAllCreatedPrs({ octokit, createdPullRequests }) {
+  console.log('Closing all created pull requests due to failure...');
+  await Promise.all(createdPullRequests.map(async function (repo) {
+    try {
+      await octokit.rest.pulls.update({
+        owner: repo.owner,
+        repo: repo.name,
+        pull_number: repo.number,
+        state: 'closed'
+      });
+    }
+    catch (e) {
+      console.error('Unable to close pull request for repo ' + repo.name + ': ', e.message);
+    }
+  }));
+  console.log('All of your pull requests were reverted.');
+}
+
 async function createPullRequests({ octokit, configuration }) {
   const body = getBody(configuration);
   const createdPullRequests = [];
@@ -187,6 +205,20 @@ async function createPullRequests({ octokit, configuration }) {
   // Make pull requests in all repositories
   await Promise.all(configuration.repositories.map(async function (repo) {
     try {
+      const branchListResponse = await octokit.rest.repos.listBranches({
+        owner: repo.owner,
+        repo: repo.name,
+      });
+      const branchList = branchListResponse.data;
+
+      if (!branchList.find(branch => branch.name === repo.base)) {
+        throw new Error('Could not find BASE branch for repo: ' + repo.name + ', branch: ' + repo.base);
+      }
+
+      if (!branchList.find(branch => branch.name === repo.head)) {
+        throw new Error('Could not find HEAD branch for repo: ' + repo.name + ', branch: ' + repo.head);
+      }
+
       const createResult = await octokit.rest.pulls.create({
         owner: repo.owner,
         repo: repo.name,
@@ -195,16 +227,18 @@ async function createPullRequests({ octokit, configuration }) {
         base: repo.base,
         body: body
       });
-      console.info('Pull request created: ' + createResult.data.html_url);
 
       createdPullRequests.push({
+        owner: repo.owner,
         name: repo.name,
         url: createResult.data.html_url,
         number: createResult.data.number
       });
     }
     catch (e) {
-      console.error('Unable to create pull request for repo: ' + repo, e.message);
+      console.error('Unable to create pull request for repo ' + repo.name + ': ', e.message);
+      closeAllCreatedPrs({ octokit, createdPullRequests });
+      throw e;
     }
   }));
 
@@ -226,17 +260,16 @@ async function updatePullRequests({ octokit, body, configuration, createdPullReq
 ${linkedPrs.join('\n')}`);
       }
 
-      const updateResult = await octokit.rest.pulls.update({
+      await octokit.rest.pulls.update({
         owner: repo.owner,
         repo: repo.name,
         pull_number: myPr.number,
         body: myBody
       });
-
-      console.info('Pull request updated: ' + updateResult.data.html_url);
     }
     catch (e) {
-      console.error('Unable to update pull request for repo: ' + repo + ', error: ', e.message);
+      console.error('Unable to update pull request for repo ' + repo.name + ': ', e.message);
+      closeAllCreatedPrs({ octokit, createdPullRequests });
       throw e;
     }
   }));
@@ -246,9 +279,9 @@ ${linkedPrs.join('\n')}`);
 
 
 async function requestReviewers({ createdPullRequests, configuration, octokit }) {
-  try {
-    if (configuration.reviewers) {
-      for (const pr of createdPullRequests) {
+  if (configuration.reviewers) {
+    for (const pr of createdPullRequests) {
+      try {
         const repo = configuration.repositories.find(repo => pr.name === repo.name);
         const result = await octokit.rest.pulls.requestReviewers({
           owner: repo.owner,
@@ -259,16 +292,23 @@ async function requestReviewers({ createdPullRequests, configuration, octokit })
 
         console.log('Reviewers added to for: ' + result.data.html_url);
       }
+      catch (e) {
+        console.error('Unable to add reviewers to request for repo ' + repo.name + ': ' , e.message);
+        closeAllCreatedPrs({ octokit, createdPullRequests });
+        throw e;
+      }
     }
   }
-  catch (e) {
-    console.error('Unable to add reviewers', e.message);
-    throw e;
+
+
+  console.log('Pull requests created: ');
+  for (const pr of createdPullRequests) {
+    console.log('  ' + pr.name + ': ' + pr.url);
   }
 
   if (configuration.browser) {
     for (const pr of createdPullRequests) {
-      child_process.spawn("xdg-open", [ pr.url ]);
+      child_process.spawn("xdg-open", [pr.url]);
     }
   }
 }
